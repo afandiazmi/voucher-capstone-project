@@ -28,6 +28,10 @@ html
         .col-md-12
           .alert.alert-primary(role="alert")
             h4 Welcome to Voucherify!
+            if !user
+              p Sign up or log in to start redeeming vouchers.
+            else
+              p Welcome back, #{user.name}! Redeem your points for exciting vouchers.
             p Redeem exciting vouchers using your loyalty points.
           
       .row.mt-3
