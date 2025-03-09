@@ -1,3 +1,4 @@
+const path = require('path');
 const express = require('express');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
@@ -5,10 +6,12 @@ const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
 const xss = require('xss-clean');
 const hpp = require('hpp');
+const cookieParser = require('cookie-parser'); // Add this line
 
 const AppError = require('./utils/appError');
 const globalErrorHandler = require('./controllers/errorController');
 
+const viewRouter = require('./routes/viewRoutes');
 const userRouter = require('./routes/userRoutes');
 const voucherRouter = require('./routes/voucherRoutes');
 const cartRouter = require('./routes/cartRoutes');
@@ -16,9 +19,15 @@ const orderHistoryRouter = require('./routes/orderHistoryRoutes');
 
 const app = express();
 
+app.set('view engine', 'pug');
+app.set('views', path.join(__dirname, 'views'));
+
 // 1) GLOBAL MIDDLEWARES
+app.use(express.static(path.join(__dirname, 'public')));
+
 // Set security HTTP headers
-app.use(helmet());
+// app.use(helmet()); // This is the default setting
+app.use(helmet({ contentSecurityPolicy: false })); // This is the setting to allow all public use
 
 // Development logging
 if (process.env.NODE_ENV === 'development') {
@@ -40,6 +49,7 @@ app.use(
     limit: '100kb',
   }),
 );
+app.use(cookieParser()); // Add this line
 
 // Data sanitization against NoSQL query injection
 app.use(mongoSanitize());
@@ -50,9 +60,6 @@ app.use(xss());
 // Prevent parameter pollution
 app.use(hpp());
 
-// Serving static files
-app.use(express.static(`${__dirname}/public`));
-
 // Test middleware
 app.use((req, res, next) => {
   req.requestTime = new Date().toISOString();
@@ -60,6 +67,7 @@ app.use((req, res, next) => {
 });
 
 // 3) ROUTES
+app.use('/', viewRouter);
 
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/vouchers', voucherRouter);

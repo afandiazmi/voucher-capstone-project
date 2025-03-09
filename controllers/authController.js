@@ -107,6 +107,47 @@ exports.protect = catchAsync(async (req, res, next) => {
   next();
 });
 
+// kita bukan nk block org, kita nk check dulu then nk guna data user tu je mcm nama/role/etc
+exports.isLoggedIn = catchAsync(async (req, res, next) => {
+  if (req.cookies.jwt) {
+    try {
+      // 2) Verification token
+      const decoded = await promisify(jwt.verify)(
+        req.cookies.jwt,
+        process.env.JWT_SECRET,
+      );
+
+      // 3) Check if user still exists
+      const currentUser = await User.findById(decoded.id);
+      if (!currentUser) {
+        return next(
+          new AppError(
+            'The user belonging to this token does no longer exist',
+            401,
+          ),
+        );
+      }
+      // 4) Check if user changed password after the token was issued
+      if (currentUser.changedPasswordAfter(decoded.iat)) {
+        return next(
+          new AppError(
+            'User recently changed password! Please log in again!',
+            401,
+          ),
+        );
+      }
+      // GRANT ACCESS TO PROTECTED ROUTE
+      res.locals.user = currentUser;
+      req.user = currentUser;
+
+      return next();
+    } catch (err) {
+      return next();
+    }
+  }
+  next();
+});
+
 exports.restrictTo =
   (...roles) =>
   (req, res, next) => {

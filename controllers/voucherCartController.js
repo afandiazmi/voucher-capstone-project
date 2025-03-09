@@ -92,6 +92,7 @@ exports.redeemVouchers = catchAsync(async (req, res, next) => {
   let cart = await Cart.findOne({ user: req.user.id }).populate(
     'vouchers.voucher',
   );
+
   if (!cart || cart.vouchers.length === 0)
     return next(new AppError('Cart is empty', 400));
 
